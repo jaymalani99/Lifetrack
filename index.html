@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+=<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -217,11 +217,16 @@ textarea{resize:vertical;min-height:80px}
 .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
 
 /* MOBILE */
-.mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--ink);padding:12px 20px 20px;gap:4px;z-index:50;border-top:1px solid #333}
-.mobile-nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 4px;cursor:pointer;border-radius:10px;border:none;background:none;color:#666;font-size:10px;font-family:'DM Sans',sans-serif;transition:all .15s}
-.mobile-nav-item.active{color:var(--yellow)}
-.mobile-nav-icon{font-size:20px}
 .mobile-header{display:none;background:var(--ink);padding:16px 20px;position:sticky;top:0;z-index:40;align-items:center;justify-content:space-between}
+.mobile-brand{font-family:'Playfair Display',serif;font-size:18px;color:var(--cream)}
+.hamburger{background:none;border:none;cursor:pointer;display:flex;flex-direction:column;gap:5px;padding:4px}
+.hamburger span{display:block;width:22px;height:2px;background:var(--cream);border-radius:2px;transition:all .3s}
+/* DRAWER */
+.drawer-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:60;opacity:0;transition:opacity .3s}
+.drawer-overlay.open{display:block;opacity:1}
+.drawer{position:fixed;top:0;left:0;bottom:0;width:280px;background:var(--ink);z-index:61;transform:translateX(-100%);transition:transform .3s ease;padding:32px 20px;display:flex;flex-direction:column;gap:8px;overflow-y:auto}
+.drawer.open{transform:translateX(0)}
+.drawer-close{background:none;border:none;color:#666;font-size:22px;cursor:pointer;align-self:flex-end;margin-bottom:8px;padding:4px}
 .mobile-brand{font-family:'Playfair Display',serif;font-size:18px;color:var(--cream)}
 
 /* EMPTY & TOAST */
@@ -232,8 +237,8 @@ textarea{resize:vertical;min-height:80px}
 
 /* RESPONSIVE */
 @media(max-width:768px){
-  .app{grid-template-columns:1fr}.sidebar{display:none}.mobile-nav{display:flex}.mobile-header{display:flex}
-  .main{padding:20px 16px 100px}.greeting{font-size:26px}
+  .app{grid-template-columns:1fr}.sidebar{display:none}.mobile-header{display:flex}
+  .main{padding:20px 16px 40px}.greeting{font-size:26px}
   .digest-grid{grid-template-columns:1fr}.fin-strip{padding:14px 16px}
   .fin-strip-val{font-size:17px}.fin-strip-label{font-size:8px}
   .form-row{grid-template-columns:1fr}.modal{padding:20px}
@@ -285,7 +290,30 @@ textarea{resize:vertical;min-height:80px}
 
   <div class="mobile-header">
     <div class="mobile-brand">Malani</div>
-    <span id="mobile-date" style="font-family:'DM Mono',monospace;font-size:11px;color:#666"></span>
+    <button class="hamburger" onclick="openDrawer()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+
+  <!-- DRAWER OVERLAY -->
+  <div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
+
+  <!-- DRAWER -->
+  <div class="drawer" id="drawer">
+    <button class="drawer-close" onclick="closeDrawer()">✕</button>
+    <div class="sidebar-brand">Malani <span>Life Ops Dashboard</span></div>
+    <div class="sidebar-label">Workspace</div>
+    <button class="nav-item active" id="dnav-home" onclick="nav('home',this);closeDrawer()"><span class="nav-dot" style="background:var(--yellow)"></span>Overview</button>
+    <button class="nav-item" id="dnav-calendar" onclick="nav('calendar',this);closeDrawer()"><span class="nav-dot" style="background:var(--pink)"></span>Calendar</button>
+    <button class="nav-item" id="dnav-dms" onclick="nav('dms',this);closeDrawer()"><span class="nav-dot" style="background:var(--coral)"></span>Cold DMs</button>
+    <button class="nav-item" id="dnav-finance" onclick="nav('finance',this);closeDrawer()"><span class="nav-dot" style="background:var(--yellow)"></span>Finances</button>
+    <button class="nav-item" id="dnav-content" onclick="nav('content',this);closeDrawer()"><span class="nav-dot" style="background:var(--sage)"></span>Content Ideas</button>
+    <button class="nav-item" id="dnav-tasks" onclick="nav('tasks',this);closeDrawer()"><span class="nav-dot" style="background:#9B8FD4"></span>Checklist</button>
+    <div class="sidebar-label">Personal</div>
+    <button class="nav-item" id="dnav-wins" onclick="nav('wins',this);closeDrawer()"><span class="nav-dot" style="background:var(--yellow)"></span>Life Wins</button>
+    <button class="nav-item" id="dnav-notes" onclick="nav('notes',this);closeDrawer()"><span class="nav-dot" style="background:#C4B5FD"></span>Notepad</button>
+    <button class="nav-item" id="dnav-habits" onclick="nav('habits',this);closeDrawer()"><span class="nav-dot" style="background:#6EE7B7"></span>Habits</button>
+    <div style="margin-top:auto;padding-top:20px;border-top:1px solid #333;font-family:'DM Mono',monospace;font-size:11px;color:#555;line-height:1.8" id="drawer-date"></div>
   </div>
 
   <main class="main">
@@ -397,15 +425,7 @@ textarea{resize:vertical;min-height:80px}
   </main>
 </div>
 
-<!-- MOBILE NAV -->
-<nav class="mobile-nav">
-  <button class="mobile-nav-item active" onclick="nav('home',this,true)"><span class="mobile-nav-icon">⌂</span>Home</button>
-  <button class="mobile-nav-item" onclick="nav('calendar',this,true)"><span class="mobile-nav-icon">📅</span>Cal</button>
-  <button class="mobile-nav-item" onclick="nav('finance',this,true)"><span class="mobile-nav-icon">₹</span>Finance</button>
-  <button class="mobile-nav-item" onclick="nav('habits',this,true)"><span class="mobile-nav-icon">🔥</span>Habits</button>
-  <button class="mobile-nav-item" onclick="nav('wins',this,true)"><span class="mobile-nav-icon">🏆</span>Wins</button>
-  <button class="mobile-nav-item" onclick="nav('notes',this,true)"><span class="mobile-nav-icon">📓</span>Notes</button>
-</nav>
+<!-- bottom nav removed -- using drawer -->
 
 <div class="toast" id="toast"></div>
 
@@ -833,6 +853,35 @@ function rHomeIdeas(){
   if(!r.length){e.innerHTML='<div class="empty"><div class="empty-icon">💡</div>No ideas yet.</div>';return;}
   e.innerHTML=r.map(c=>`<div class="list-item"><div class="list-dot" style="background:var(--sage)"></div><div class="list-main"><div class="list-title">${c.idea}</div><div class="list-meta"><span class="tag tag-sage">${c.cat}</span> <span style="margin-left:6px">${se[c.status]||''} ${c.status}</span></div></div></div>`).join('');
 }
+function openDrawer(){
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('drawer-overlay').classList.add('open');
+  // Sync drawer date
+  const now=new Date();
+  const dd=document.getElementById('drawer-date');
+  if(dd)dd.innerHTML=now.toLocaleDateString('en-IN',{weekday:'long'})+'<br>'+now.getDate()+' '+now.toLocaleDateString('en-IN',{month:'short'})+'<br>'+now.getFullYear();
+}
+function closeDrawer(){
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('drawer-overlay').classList.remove('open');
+}
+// Override nav to also highlight drawer nav items on mobile
+const _nav=nav;
+function nav(page,btn,mob=false){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  // Clear all nav items in both sidebar and drawer
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  // Also highlight matching drawer nav item
+  const dnav=document.getElementById('dnav-'+page);
+  if(dnav)dnav.classList.add('active');
+  // And sidebar nav item
+  document.querySelectorAll('.sidebar .nav-item').forEach(b=>{
+    if(b.getAttribute('onclick')&&b.getAttribute('onclick').includes("'"+page+"'"))b.classList.add('active');
+  });
+}
+
 function rHomeStats(){
   const now=new Date(),m=now.getMonth(),y=now.getFullYear();
   // Lifetime income = finances (income type) + paid/partial projects
