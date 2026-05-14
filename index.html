@@ -579,6 +579,9 @@ function setDate(){
 }
 
 function fmt(d){if(!d)return'';return new Date(d+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'});}
+// safe month/year from date string — avoids UTC timezone shift
+function dateM(d){const p=d.split('-');return parseInt(p[1])-1;} // 0-indexed month
+function dateY(d){const p=d.split('-');return parseInt(p[0]);}
 const TC={meeting:'var(--pink)',reminder:'var(--yellow)',shoot:'var(--coral)',personal:'var(--sage)',farm:'#9B8FD4'};
 const TT={meeting:['tag-pink','Meeting'],reminder:['tag-yellow','Reminder'],shoot:['tag-coral','Shoot'],personal:['tag-sage','Personal'],farm:['tag-purple','Farm']};
 const ST={sent:['tag-yellow','Sent'],replied:['tag-sage','Replied'],interested:['tag-coral','Interested'],converted:['tag-sage','🎉 Converted'],dead:['tag-coral','Dead']};
@@ -712,7 +715,7 @@ function rFin(){
   else e.innerHTML=S.finances.map(f=>`<div class="fin-item"><div><div class="list-title">${f.description}</div><div class="list-meta">${fmt(f.date)} · <span class="tag ${f.type==='income'?'tag-sage':'tag-coral'}">${f.type==='income'?'Income':'Expense'}</span></div></div><div style="display:flex;align-items:center;gap:10px"><div class="fin-amount ${f.type==='income'?'fin-income':'fin-expense'}">${f.type==='income'?'+':'-'}₹${Number(f.amount).toLocaleString('en-IN')}</div><button class="btn btn-ghost" style="padding:4px 8px;font-size:11px" onclick="delFin(${f.id})">✕</button></div></div>`).join('');
 
   const now=new Date(),m=now.getMonth(),y=now.getFullYear();
-  const mon=S.finances.filter(f=>{const d=new Date(f.date);return d.getMonth()===m&&d.getFullYear()===y;});
+  const mon=S.finances.filter(f=>f.date&&dateM(f.date)===m&&dateY(f.date)===y);
   const mI=mon.filter(f=>f.type==='income').reduce((a,b)=>a+Number(b.amount),0);
   const mE=mon.filter(f=>f.type==='expense').reduce((a,b)=>a+Number(b.amount),0);
   const mN=mI-mE;
@@ -733,8 +736,8 @@ function rFin(){
   if(ce&&le){
     const months=[];for(let i=7;i>=0;i--){const d=new Date(y,m-i,1);months.push({m:d.getMonth(),y:d.getFullYear(),l:d.toLocaleDateString('en-IN',{month:'short'})});}
     const vals=months.map(({m:mm,y:yy})=>{
-      const fi=S.finances.filter(f=>f.type==='income'&&new Date(f.date).getMonth()===mm&&new Date(f.date).getFullYear()===yy).reduce((a,b)=>a+Number(b.amount),0);
-      const pr=S.projects.filter(p=>(p.status==='paid'||p.status==='partial')&&new Date(p.date).getMonth()===mm&&new Date(p.date).getFullYear()===yy).reduce((a,b)=>a+Number(b.amount),0);
+      const fi=S.finances.filter(f=>f.type==='income'&&f.date&&dateM(f.date)===mm&&dateY(f.date)===yy).reduce((a,b)=>a+Number(b.amount),0);
+      const pr=S.projects.filter(p=>(p.status==='paid'||p.status==='partial')&&p.date&&dateM(p.date)===mm&&dateY(p.date)===yy).reduce((a,b)=>a+Number(b.amount),0);
       return fi+pr;
     });
     const mx=Math.max(...vals,1);
@@ -826,14 +829,25 @@ function rHomeIdeas(){
 }
 function rHomeStats(){
   const now=new Date(),m=now.getMonth(),y=now.getFullYear();
-  const I=S.finances.filter(f=>f.type==='income'&&new Date(f.date).getMonth()===m&&new Date(f.date).getFullYear()===y).reduce((a,b)=>a+Number(b.amount),0);
-  const E=S.finances.filter(f=>f.type==='expense'&&new Date(f.date).getMonth()===m&&new Date(f.date).getFullYear()===y).reduce((a,b)=>a+Number(b.amount),0);
+  // Use string-based date parsing to avoid UTC timezone shift
+  const I=S.finances.filter(f=>f.type==='income'&&f.date&&dateM(f.date)===m&&dateY(f.date)===y).reduce((a,b)=>a+Number(b.amount),0);
+  const E=S.finances.filter(f=>f.type==='expense'&&f.date&&dateM(f.date)===m&&dateY(f.date)===y).reduce((a,b)=>a+Number(b.amount),0);
   const N=I-E;
-  const D=S.dms.filter(d=>{const dt=new Date(d.date);return dt.getMonth()===m&&dt.getFullYear()===y;}).length;
-  setEl('stat-income','₹'+I.toLocaleString('en-IN'));
-  setEl('stat-expense','₹'+E.toLocaleString('en-IN'));
-  const sn=el('stat-net');if(sn){sn.textContent='₹'+Math.abs(N).toLocaleString('en-IN');sn.style.color=N>=0?'var(--sage)':'var(--coral)';}
+  // Lifetime totals for the strip
+  const LI=S.finances.filter(f=>f.type==='income').reduce((a,b)=>a+Number(b.amount),0);
+  const LE=S.finances.filter(f=>f.type==='expense').reduce((a,b)=>a+Number(b.amount),0);
+  const LN=LI-LE;
+  const D=S.dms.filter(d=>d.date&&dateM(d.date)===m&&dateY(d.date)===y).length;
+  // Home strip shows LIFETIME income and expense for full picture
+  setEl('stat-income','₹'+LI.toLocaleString('en-IN'));
+  setEl('stat-expense','₹'+LE.toLocaleString('en-IN'));
+  const sn=el('stat-net');if(sn){sn.textContent='₹'+Math.abs(LN).toLocaleString('en-IN');sn.style.color=LN>=0?'var(--sage)':'var(--coral)';}
   setEl('stat-dms',D);
+  // Update strip labels to reflect lifetime
+  const labels=document.querySelectorAll('.fin-strip-label');
+  if(labels[0])labels[0].textContent='Total earned';
+  if(labels[1])labels[1].textContent='Total spent';
+  if(labels[2])labels[2].textContent='Net';
   rWeek();rHomeTasks();rFollowups();rHomeIdeas();
 }
 </script>
