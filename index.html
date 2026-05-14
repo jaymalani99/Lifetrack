@@ -835,21 +835,17 @@ function rHomeIdeas(){
 }
 function rHomeStats(){
   const now=new Date(),m=now.getMonth(),y=now.getFullYear();
-  // Use string-based date parsing to avoid UTC timezone shift
-  const I=S.finances.filter(f=>f.type==='income'&&f.date&&dateM(f.date)===m&&dateY(f.date)===y).reduce((a,b)=>a+Number(b.amount),0);
-  const E=S.finances.filter(f=>f.type==='expense'&&f.date&&dateM(f.date)===m&&dateY(f.date)===y).reduce((a,b)=>a+Number(b.amount),0);
-  const N=I-E;
-  // Lifetime totals for the strip
-  const LI=S.finances.filter(f=>f.type==='income').reduce((a,b)=>a+Number(b.amount),0);
+  // Lifetime income = finances (income type) + paid/partial projects
+  const LI=S.finances.filter(f=>f.type==='income').reduce((a,b)=>a+Number(b.amount),0)
+    +S.projects.filter(p=>p.status==='paid'||p.status==='partial').reduce((a,b)=>a+Number(b.amount),0);
   const LE=S.finances.filter(f=>f.type==='expense').reduce((a,b)=>a+Number(b.amount),0);
   const LN=LI-LE;
   const D=S.dms.filter(d=>d.date&&dateM(d.date)===m&&dateY(d.date)===y).length;
-  // Home strip shows LIFETIME income and expense for full picture
   setEl('stat-income','₹'+LI.toLocaleString('en-IN'));
   setEl('stat-expense','₹'+LE.toLocaleString('en-IN'));
   const sn=el('stat-net');if(sn){sn.textContent='₹'+Math.abs(LN).toLocaleString('en-IN');sn.style.color=LN>=0?'var(--sage)':'var(--coral)';}
   setEl('stat-dms',D);
-  // Update strip labels to reflect lifetime
+  // Update strip labels
   const labels=document.querySelectorAll('.fin-strip-label');
   if(labels[0])labels[0].textContent='Total earned';
   if(labels[1])labels[1].textContent='Total spent';
