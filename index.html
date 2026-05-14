@@ -488,11 +488,10 @@ const SB='https://lcgfjvtalbuauqdtdfsf.supabase.co';
 const KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxjZ2ZqdnRhbGJ1YXVxZHRkZnNmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4NTgyMjgsImV4cCI6MjA5MDQzNDIyOH0.z1z0aoz_dyWHb6jcZHPk-9dcvUKvCnGV7BTe8L5chnA';
 
 async function q(table,method='GET',body=null,query=''){
-  const r=await fetch(`${SB}/rest/v1/${table}${query}`,{
-    method,headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':method==='POST'?'return=representation':''},
-    body:body?JSON.stringify(body):null
-  });
-  if(!r.ok)throw new Error(await r.text());
+  const headers={'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json'};
+  if(method==='POST') headers['Prefer']='return=representation';
+  const r=await fetch(`${SB}/rest/v1/${table}${query}`,{method,headers,body:body?JSON.stringify(body):null});
+  if(!r.ok){const txt=await r.text();throw new Error(table+': '+txt);}
   if(method==='DELETE'||r.status===204)return null;
   return r.json();
 }
@@ -522,21 +521,24 @@ async function chkPin(){
 let S={events:[],dms:[],finances:[],projects:[],content:[],tasks:[],wins:[],notes:[],habits:[],checkins:[]};
 
 async function boot(){
-  try{
-    const [a,b,c,d,e,f,g,h,i,j]=await Promise.all([
-      get('personal_events','?order=date.asc'),
-      get('personal_dms','?order=created_at.desc'),
-      get('personal_finances','?order=date.desc'),
-      get('personal_projects','?order=date.desc'),
-      get('personal_content','?order=created_at.desc'),
-      get('personal_tasks','?order=created_at.desc'),
-      get('personal_wins','?order=date.desc'),
-      get('personal_notes','?order=date.desc'),
-      get('personal_habits','?order=created_at.asc'),
-      get('personal_checkins','?order=date.desc'),
-    ]);
-    S={events:a,dms:b,finances:c,projects:d,content:e,tasks:f,wins:g,notes:h,habits:i,checkins:j};
-  }catch(err){toast('Could not load — check connection');console.error(err);}
+  const tables=[
+    ['events','personal_events','?order=date.asc'],
+    ['dms','personal_dms','?order=created_at.desc'],
+    ['finances','personal_finances','?order=date.desc'],
+    ['projects','personal_projects','?order=date.desc'],
+    ['content','personal_content','?order=created_at.desc'],
+    ['tasks','personal_tasks','?order=created_at.desc'],
+    ['wins','personal_wins','?order=date.desc'],
+    ['notes','personal_notes','?order=date.desc'],
+    ['habits','personal_habits','?order=created_at.asc'],
+    ['checkins','personal_checkins','?order=date.desc'],
+  ];
+  const results=await Promise.allSettled(tables.map(([,t,qs])=>get(t,qs)));
+  results.forEach((r,i)=>{
+    const key=tables[i][0];
+    if(r.status==='fulfilled') S[key]=r.value||[];
+    else { S[key]=[]; console.error('Failed: '+tables[i][1],r.reason); }
+  });
   document.getElementById('loading-screen').style.display='none';
   document.getElementById('app').style.display='grid';
   setDate(); renderAll();
