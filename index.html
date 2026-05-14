@@ -600,7 +600,13 @@ async function saveDM(){
 async function saveFinance(){
   const type=v('fin-type'),amount=parseFloat(v('fin-amount')),description=v('fin-desc'),date=v('fin-date');
   if(!amount||!description)return toast('Fill amount and description');
-  try{const [r]=await ins('personal_finances',{type,amount,description,date});S.finances.unshift(r);rFin();rHomeStats();closeM('modal-fin');clr('fin-amount','fin-desc');toast('Entry saved ✓');}catch{toast('Error saving');}
+  try{
+    const result=await ins('personal_finances',{type,amount,description,date});
+    console.log('saveFinance result:',result);
+    const r=Array.isArray(result)?result[0]:result;
+    if(r&&r.id){S.finances.unshift(r);}else{S.finances=await get('personal_finances','?order=date.desc');}
+    rFin();rHomeStats();closeM('modal-fin');clr('fin-amount','fin-desc');toast('Entry saved ✓');
+  }catch(err){console.error('saveFinance error:',err);toast('Error: '+err.message);}
 }
 async function saveProject(){
   const client=v('proj-client'),invoice=v('proj-invoice'),amount=parseFloat(v('proj-amount')),type=v('proj-type'),date=v('proj-date'),status=v('proj-status');
